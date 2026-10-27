@@ -39,6 +39,22 @@ else
     endif
 endif
 
+# Additional EFI platforms to put on the ESPs next to the main one, e.g. i386-efi for
+# 64-bit CPUs behind 32-bit UEFI firmware (Bay Trail / Cherry Trail tablets).
+# Each needs prebuilts in prebuilts/bootmgr/grub/<host>/<arch>.
+GRUB_EFI_ARCH_BOOT_FILENAME_i386-efi := BOOTIA32.EFI
+GRUB_EFI_ARCH_BOOT_FILENAME_x86_64-efi := BOOTX64.EFI
+GRUB_EFI_ARCH_BOOT_FILENAME_arm64-efi := BOOTAA64.EFI
+$(foreach arch,$(TARGET_GRUB_EFI_EXTRA_ARCHS),\
+	$(if $(GRUB_EFI_ARCH_BOOT_FILENAME_$(arch)),,$(error Unsupported TARGET_GRUB_EFI_EXTRA_ARCHS entry $(arch))))
+
+# $(1): workdir
+# $(2): EFI platform, e.g. i386-efi
+# Uses the grub-standalone.cfg that make-espimage generates for the main platform.
+define make-grub-extra-efi
+$(BOOTMGR_PATH_OVERRIDE) $(BOOTMGR_TOOLS_64_EXEC_ENV) prebuilts/bootmgr/grub/$(TARGET_GRUB_HOST_PREBUILT_TAG)/$(2)/bin/grub-mkstandalone -d prebuilts/bootmgr/grub/$(TARGET_GRUB_HOST_PREBUILT_TAG)/$(2)/lib/grub/$(2) --locales="" --fonts="" --format=$(2) --output=$(1)/fsroot/EFI/BOOT/$(GRUB_EFI_ARCH_BOOT_FILENAME_$(2)) --modules="configfile disk fat part_gpt search" "boot/grub/grub.cfg=$(1)/grub-standalone.cfg" && cp -r prebuilts/bootmgr/grub/$(TARGET_GRUB_HOST_PREBUILT_TAG)/$(2)/lib/grub/$(2) $(1)/fsroot/boot/grub/
+endef
+
 GRUB_DEFAULT_ENV_VARS_FILE := $(VIRT_COMMON_PATH)/configs/misc/grubenv.txt
 
 ifneq ($(TARGET_GRUB_THEME_CUSTOM_MK),)
@@ -75,6 +91,8 @@ define make-espimage
 		sed -i "s|@PURPOSE@|$(4)|g" $(3)/grub-standalone.cfg; \
 		$(BOOTMGR_PATH_OVERRIDE) $(BOOTMGR_TOOLS_64_EXEC_ENV) $(GRUB_PREBUILT_DIR)/bin/grub-mkstandalone -d $(GRUB_PREBUILT_DIR)/lib/grub/$(TARGET_GRUB_ARCH) --locales="" --fonts="" --format=$(GRUB_MKSTANDALONE_FORMAT) --output=$(3)/fsroot/EFI/BOOT/$(BOOTMGR_EFI_BOOT_FILENAME) --modules="configfile disk fat part_gpt search" "boot/grub/grub.cfg=$(3)/grub-standalone.cfg"; \
 	fi
+
+	$(foreach arch,$(TARGET_GRUB_EFI_EXTRA_ARCHS),$(call make-grub-extra-efi,$(3),$(arch)) &&) true
 
 	cp -r $(GRUB_PREBUILT_DIR)/lib/grub/$(TARGET_GRUB_ARCH) $(3)/fsroot/boot/grub/
 	cp $(GRUB_PREBUILT_DIR)/share/grub/unicode.pf2 $(3)/fsroot/boot/grub/fonts/unicode.pf2
