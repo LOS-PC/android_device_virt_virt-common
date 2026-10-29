@@ -18,10 +18,10 @@ TARGET_HAS_BATTERY := false
 TARGET_HAS_VIBRATOR := false
 TARGET_HOSTAPD_AND_WPA_SUPPLICANT_FORM := apex-mainline_common
 TARGET_KEYMINT_HAL_DEFAULT_INSIDE_APEX := false # To save existing users from doing factory reset
-TARGET_LIGHT_HAL := none
+TARGET_LIGHT_HAL ?= none
 TARGET_MESA_ENABLE_SOFTWARE_RENDERER := true
 TARGET_SENSORS_HAL := cuttlefish
-TARGET_SUPPORTS_SUSPEND := false
+TARGET_SUPPORTS_SUSPEND ?= false
 TARGET_SUPPORTS_USB_ACCESSORY_MODE := false
 TARGET_USES_TABLET_INPUT_AS_TOUCHSCREEN := true
 include device/mainline/common/optional/options.mk
